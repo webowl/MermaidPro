@@ -1,0 +1,24 @@
+{
+  "name": "mermaidpro",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@codemirror/autocomplete": "^6.20.1",
+    "@vitejs/plugin-vue": "^6.0.5",
+    "vite": "^8.0.2"
+  },
+  "dependencies": {
+    "@codemirror/lang-markdown": "^6.5.0",
+    "bootstrap": "^5.3.2",
+    "codemirror": "^6.0.2",
+    "lowlight": "^2.3.0",
+    "mermaid": "^11.13.0",
+    "vue": "^3.4.0"
+  }
+}

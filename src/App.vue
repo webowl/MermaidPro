@@ -1,0 +1,781 @@
+<template>
+  <div class="app-shell">
+    <!-- Top Navbar -->
+    <nav class="navbar navbar-light bg-light border-bottom">
+      <div class="container-fluid px-3 d-flex justify-content-between align-items-center">
+        <div class="d-flex gap-2 align-items-center">
+          <button class="btn btn-sm btn-outline-secondary" @click="sidebarVisible = !sidebarVisible" :title="t('toggleSidebar')">≡</button>
+          <div class="dropdown">
+            <a class="btn btn-sm btn-light dropdown-toggle" href="#" role="button" id="fileMenuDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+              File
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="fileMenuDropdown">
+              <li><a class="dropdown-item" href="#" @click.prevent="newFile">{{ t('newFile') }}</a></li>
+              <li><a class="dropdown-item" href="#" @click.prevent="openFileInput">{{ t('openFile') }}</a></li>
+              <li><a class="dropdown-item" href="#" @click.prevent="saveFile">{{ t('saveFile') }}</a></li>
+              <li><a class="dropdown-item" href="#" @click.prevent="exportSvg">{{ t('exportSvg') }}</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+          <select class="form-select form-select-sm" style="width: 80px" v-model="lang" @change="switchLanguage">
+            <option value="en">EN</option>
+            <option value="zh">中文</option>
+          </select>
+          <select class="form-select form-select-sm" style="width: 80px" v-model="isDarkMode" @change="switchTheme">
+            <option :value="false">Light</option>
+            <option :value="true">Dark</option>
+          </select>
+          <span class="user-icon btn btn-sm btn-outline-secondary">
+            <i class="bi bi-person-circle"></i>
+          </span>
+        </div>
+      </div>
+    </nav>
+
+    <transition name="fade">
+      <div v-if="notification" class="position-fixed top-0 end-0 m-3 alert alert-warning py-2 px-3" role="alert" style="z-index: 1100; min-width: 220px;">
+        {{ notification }}
+      </div>
+    </transition>
+    <transition name="fade">
+      <div v-if="hasError" class="position-fixed top-0 start-50 translate-middle-x m-3 alert alert-danger py-2 px-4 d-flex align-items-center gap-2" role="alert" style="z-index: 1100; min-width: 320px; max-width: 90vw;">
+        <span>{{ errorMessage }}</span>
+        <button class="btn-close btn-close-sm" @click="hasError = false; errorMessage = ''"></button>
+      </div>
+    </transition>
+
+    <!-- Main Layout -->
+    <div class="main-container d-flex">
+      <!-- Sidebar (Recent Files) -->
+      <aside class="sidebar border-end" :class="{ show: sidebarVisible }">
+        <div class="p-3">
+          <h6 class="mb-2">{{ t('recentFiles') }}</h6>
+          <ul class="list-group list-group-flush small">
+            <li v-for="file in recentFiles" :key="file.name + file.time" 
+                :class="['list-group-item', 'p-2', 'cursor-pointer', { 'fw-bold bg-light': file.name === currentFileName }]"
+                @click="loadRecentFile(file)">
+              <div class="text-truncate">{{ file.name }}</div>
+              <small v-if="file.name === currentFileName" class="text-success">{{ t('current') }}</small>
+            </li>
+            <li v-if="recentFiles.length === 0" class="list-group-item p-2 text-muted">—</li>
+          </ul>
+        </div>
+      </aside>
+
+      <!-- Editor & Preview -->
+      <div class="editor-preview-container">
+        <div class="editor-panel" ref="editorPanel">
+          <div class="editor-wrapper" ref="editorWrapper"></div>
+          <div class="drag-hint small text-muted text-center">{{ t('dragHint') }}</div>
+        </div>
+        <div class="splitter" @mousedown="startDrag">
+          <button
+            class="btn btn-sm apply-btn"
+            :class="{ 'btn-primary': hasPending, 'btn-secondary': !hasPending }"
+            @click.stop.prevent="applyDiagram"
+            @mousedown.stop
+            :title="t('applyChart')"
+          >
+            ·
+          </button>
+        </div>
+        <div class="preview-panel" ref="previewPanel">
+          <div class="chart-controls">
+            <button @click="zoomOut" class="btn btn-sm btn-outline-secondary" :title="t('zoomOut')">−</button>
+            <button @click="zoomIn" class="btn btn-sm btn-outline-secondary" :title="t('zoomIn')">+</button>
+            <span class="zoom-label">{{ Math.round(zoomLevel * 100) }}%</span>
+            <button @click="resetZoom" class="btn btn-sm btn-outline-secondary" :title="t('reset')">⊙</button>
+            <button @click="togglePan" class="btn btn-sm" :class="panMode ? 'btn-primary' : 'btn-outline-secondary'" :title="t('pan')">✋</button>
+          </div>
+          <div id="preview" class="p-2" ref="preview" style="height: 100%; overflow: auto"></div>
+        </div>
+      </div>
+    </div>
+
+    <input type="file" ref="fileInput" class="d-none" accept=".mmd,.mermaid" @change="handleFileOpen" />
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { EditorState } from '@codemirror/state'
+import { EditorView, keymap } from '@codemirror/view'
+import { basicSetup } from 'codemirror'
+import { autocompletion } from '@codemirror/autocomplete'
+import { markdown } from '@codemirror/lang-markdown'
+import { indentWithTab } from '@codemirror/commands'
+import mermaid from 'mermaid'
+import enLocale from './locales/en.json'
+import zhLocale from './locales/zh.json'
+
+// Mermaid snippet completions
+const mermaidCompletions = [
+  // Diagram types
+  { label: 'graph', type: 'keyword', detail: 'Directed graph', apply: 'graph TD\n    A[Start] --> B[End]' },
+  { label: 'graph TD', type: 'keyword', detail: 'Top-down directed graph', apply: 'graph TD\n    A[Start] --> B[End]' },
+  { label: 'graph LR', type: 'keyword', detail: 'Left-right directed graph', apply: 'graph LR\n    A[Start] --> B[End]' },
+  { label: 'graph BT', type: 'keyword', detail: 'Bottom-top directed graph', apply: 'graph BT\n    A[Start] --> B[End]' },
+  { label: 'graph RL', type: 'keyword', detail: 'Right-left directed graph', apply: 'graph RL\n    A[Start] --> B[End]' },
+  { label: 'flowchart', type: 'keyword', detail: 'Flowchart syntax', apply: 'flowchart TD\n    A[Start] --> B[End]' },
+  { label: 'sequenceDiagram', type: 'keyword', detail: 'Sequence diagram', apply: 'sequenceDiagram\n    participant A\n    participant B\n    A->>B: Hello' },
+  { label: 'classDiagram', type: 'keyword', detail: 'Class diagram', apply: 'classDiagram\n    class Animal {\n        +String name\n        +makeSound()\n    }' },
+  { label: 'stateDiagram-v2', type: 'keyword', detail: 'State diagram', apply: 'stateDiagram-v2\n    [*] --> State1\n    State1 --> [*]' },
+  { label: 'erDiagram', type: 'keyword', detail: 'Entity-relationship diagram', apply: 'erDiagram\n    CUSTOMER {\n        string name\n        int id\n    }\n    ORDER ||--o{ CUSTOMER : places' },
+  { label: 'gantt', type: 'keyword', detail: 'Gantt chart', apply: 'gantt\n    title A Gantt Diagram\n    dateFormat YYYY-MM-DD\n    section Section\n    A task           :a1, 2024-01-01, 30d\n    B task           :a2, 2024-01-05, 20d' },
+  { label: 'pie', type: 'keyword', detail: 'Pie chart', apply: 'pie title Pie Chart\n    "Dogs" : 386\n    "Cats" : 85\n    "Rats" : 15' },
+  { label: 'mindmap', type: 'keyword', detail: 'Mind map', apply: 'mindmap\n    root((Main Topic))\n      Child 1\n      Child 2\n        Grandchild' },
+  { label: 'timeline', type: 'keyword', detail: 'Timeline', apply: 'timeline\n    title Timeline Title\n    2024-01 : Event 1\n    2024-02 : Event 2' },
+  { label: 'gitGraph', type: 'keyword', detail: 'Git graph', apply: 'gitGraph\n    commit id: "A"\n    commit id: "B"\n    branch feature\n    checkout feature\n    commit id: "C"' },
+  // Node shapes
+  { label: 'A[...]', type: 'text', detail: 'Rounded rectangle node', apply: 'A[Text]' },
+  { label: 'A(...)', type: 'text', detail: 'Stadium/rounded rect', apply: 'A(Text)' },
+  { label: 'A{...}', type: 'text', detail: 'Diamond/decision node', apply: 'A{Decision}' },
+  { label: 'A((...))', type: 'text', detail: 'Circle node', apply: 'A((Circle))' },
+  { label: 'A>{{...}}', type: 'text', detail: 'Hexagon node', apply: 'A>{{Hexagon}}' },
+  // Edge styles
+  { label: '-->', type: 'operator', detail: 'Arrow line' },
+  { label: '---', type: 'operator', detail: 'Plain line' },
+  { label: '-.->', type: 'operator', detail: 'Dotted arrow' },
+  { label: '==>', type: 'operator', detail: 'Thick arrow' },
+  { label: '-.->>', type: 'operator', detail: 'Dotted thick arrow' },
+  { label: 'o--', type: 'operator', detail: 'Open circle end' },
+  { label: 'x--', type: 'operator', detail: 'Cross end' },
+  // Common keywords
+  { label: 'subgraph', type: 'keyword', detail: 'Subgraph block' },
+  { label: 'end', type: 'keyword', detail: 'End subgraph/block' },
+  { label: 'style', type: 'keyword', detail: 'Style a node', apply: 'style A fill:#f9f,stroke:#333,stroke-width:2px' },
+  { label: 'classDef', type: 'keyword', detail: 'Define CSS class' },
+  { label: 'click', type: 'keyword', detail: 'Add click interaction', apply: 'click A href "https://..."' },
+  { label: 'direction', type: 'keyword', detail: 'Set graph direction', apply: 'direction TB' },
+  // Comments
+  { label: '%%', type: 'comment', detail: 'Comment line' },
+  // Mermaid config
+  { label: 'init', type: 'keyword', detail: 'Mermaid initialization', apply: '%%{init: {\'theme\': \'default\'}}%%' },
+  { label: '%%{', type: 'keyword', detail: 'Mermaid directive block' },
+]
+
+// Mermaid autocomplete extension
+const mermaidAutocomplete = (context) => {
+  const word = context.matchBefore(/\w*|-*|.*/)
+  if (!word || (word.from === word.to && !context.explicit)) return null
+
+  // Get current line text before cursor
+  const line = context.state.doc.lineAt(context.pos)
+  const lineText = line.text.slice(0, context.pos - line.from)
+
+  // Provide completions based on context
+  let options = mermaidCompletions
+
+  // If line starts with diagram type keyword, show shape/edge completions
+  const startsWithDiagram = /^graph|flowchart|sequenceDi|classDi|stateDi|erDi|gantt|pie|mindmap|timeline|git/i
+  if (startsWithDiagram.test(lineText)) {
+    options = options.filter(o =>
+      ['A[...]', 'A(...)', 'A{...}', 'A((...))', 'A>{{...}}',
+       '-->', '---', '-.->', '==>', '-.->>', 'o--', 'x--',
+       'subgraph', 'end', 'style', 'classDef', 'click', 'direction'].includes(o.label)
+    )
+  }
+
+  return {
+    from: word.from,
+    options,
+    validFor: /^[a-zA-Z0-9_%-]*$/
+  }
+}
+
+const localeData = { en: enLocale, zh: zhLocale }
+const lang = ref(localStorage.getItem('mermaidpro-lang') || 'en')
+const t = (key) => localeData[lang.value]?.[key] ?? key
+
+const recentFiles = ref(JSON.parse(localStorage.getItem('mermaidpro-recent') || '[]'))
+const MAX_RECENT = 8
+const currentFileName = ref('')
+const isDarkMode = ref(localStorage.getItem('mermaidpro-theme') === 'dark')
+const sidebarVisible = ref(false)
+const notification = ref('')
+
+// Zoom & Pan
+const zoomLevel = ref(1)
+const panMode = ref(false)
+const pan = ref({ x: 0, y: 0 })
+let isPanning = false
+let panStart = { x: 0, y: 0 }
+
+const showNotification = (message) => {
+  notification.value = message
+  setTimeout(() => {
+    notification.value = ''
+  }, 3000)
+}
+
+const defaultMermaid = `graph LR
+  A[Start] --> B{Decision}
+  B -->|Yes| C[Option A]
+  B -->|No| D[Option B]
+  C --> E[End]
+  D --> E`
+
+let editor = null
+
+const displaySource = ref(defaultMermaid)
+const hasPending = computed(() => editor && getEditorContent() !== displaySource.value)
+
+// Auto-clear error when content becomes valid again
+const clearErrorIfValid = (content) => {
+  if (hasError.value && content.trim() && isValidMermaid(content)) {
+    hasError.value = false
+    errorMessage.value = ''
+  }
+}
+
+const preview = ref(null)
+const editorPanel = ref(null)
+const previewPanel = ref(null)
+const editorWrapper = ref(null)
+const fileInput = ref(null)
+
+let isDragging = false
+
+const persistRecent = () => {
+  localStorage.setItem('mermaidpro-recent', JSON.stringify(recentFiles.value))
+}
+
+const addRecent = (name, content) => {
+  if (!name) return
+  const item = { name, content, time: Date.now() }
+  recentFiles.value = [item, ...recentFiles.value.filter((x) => x.name !== name)].slice(0, MAX_RECENT)
+  persistRecent()
+}
+
+const getEditorContent = () => {
+  return editor?.state?.doc?.toString() || ''
+}
+
+const updateSvgTransform = () => {
+  const svg = preview.value?.querySelector('svg');
+  if (svg) {
+    svg.style.transform = `scale(${zoomLevel.value}) translate(${pan.value.x}px, ${pan.value.y}px)`;
+    svg.style.transformOrigin = 'top left';
+  }
+}
+
+const renderDiagram = async () => {
+  const source = displaySource.value
+  const container = preview.value
+  if (!container) return
+
+  if (!source.trim()) {
+    container.innerHTML = `<div class="text-muted">${t('editorEmpty')}</div>`
+    return
+  }
+
+  try {
+    const id = `mmd-${Date.now()}`
+    const { svg } = await mermaid.render(id, source)
+    container.innerHTML = svg
+    updateSvgTransform();
+  } catch (error) {
+    container.innerHTML = `<pre style="color: red; font-size: 12px">${t('parseError')}: ${error.message}</pre>`
+  }
+}
+
+const getErrorLine = (message) => {
+  const match = /line\s*(\d+)/i.exec(message)
+  return match ? Number(match[1]) : null
+}
+
+const isValidMermaid = (source) => {
+  try {
+    mermaid.parse(source)
+    return true
+  } catch {
+    return false
+  }
+}
+
+const hasError = ref(false)
+const errorMessage = ref('')
+
+const applyDiagram = async () => {
+  const source = getEditorContent()
+  if (!source.trim()) {
+    hasError.value = false
+    errorMessage.value = ''
+    showNotification(t('editorEmpty'))
+    return
+  }
+
+  if (isValidMermaid(source)) {
+    hasError.value = false
+    errorMessage.value = ''
+    displaySource.value = source
+    renderDiagram()
+    showNotification(t('applySuccess'))
+  } else {
+    // Content is invalid — show error banner, keep previous valid preview
+    const msg = `${t('parseError')}: ${t('syntaxError')}`
+    errorMessage.value = msg
+    hasError.value = true
+    // Preview stays on last valid displaySource — don't render invalid content
+    // Error clears automatically when user types valid content
+  }
+}
+
+const resizePanels = (editorWidthPx) => {
+  const container = editorPanel.value.parentElement
+  const containerWidth = container.clientWidth
+  const minWidth = 200
+  const splitterWidth = 8
+  const maxEditorWidth = containerWidth - minWidth - splitterWidth
+  const width = Math.max(minWidth, Math.min(editorWidthPx, maxEditorWidth))
+  const percentage = (width / containerWidth) * 100
+  editorPanel.value.style.width = `${percentage}%`
+  previewPanel.value.style.width = `${((containerWidth - width - splitterWidth) / containerWidth) * 100}%`
+}
+
+const startDrag = (event) => {
+  isDragging = true
+  document.body.style.cursor = 'col-resize'
+  event.preventDefault()
+}
+
+const onDrag = (event) => {
+  if (!isDragging) return
+  const container = editorPanel.value.parentElement
+  const rect = container.getBoundingClientRect()
+  const newWidth = event.clientX - rect.left
+  resizePanels(newWidth)
+}
+
+const stopDrag = () => {
+  isDragging = false
+  document.body.style.cursor = ''
+}
+
+const newFile = () => {
+  editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: defaultMermaid } })
+  currentFileName.value = ''
+  showNotification(t('newFileCreated'))
+}
+
+const openFileInput = () => {
+  if (!fileInput.value) {
+    showNotification('File input not ready')
+    return
+  }
+  fileInput.value.value = null
+  fileInput.value.click()
+}
+
+const loadFromContent = (name, content) => {
+  editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: content } })
+  currentFileName.value = name
+  addRecent(name, content)
+  showNotification(t('fileLoaded'))
+}
+
+const handleFileOpen = (event) => {
+  const file = event.target?.files?.[0]
+  if (!file) return
+  const ext = file.name.split('.').pop().toLowerCase()
+  if (!['mmd', 'mermaid'].includes(ext)) {
+    showNotification(t('unsupportedFile'))
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = () => loadFromContent(file.name, reader.result?.toString() || '')
+  reader.readAsText(file, 'utf-8')
+}
+
+const saveFile = () => {
+  const content = getEditorContent()
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = 'mermaid.mmd'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+const exportSvg = () => {
+  const svgContent = preview.value?.querySelector('svg')
+  if (!svgContent) {
+    showNotification(t('editorEmpty'))
+    return
+  }
+  const blob = new Blob([svgContent.outerHTML], { type: 'image/svg+xml;charset=utf-8' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = 'diagram.svg'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+const loadRecentFile = (file) => {
+  loadFromContent(file.name, file.content)
+}
+
+const switchLanguage = () => {
+  localStorage.setItem('mermaidpro-lang', lang.value)
+}
+
+const switchTheme = () => {
+  localStorage.setItem('mermaidpro-theme', isDarkMode.value ? 'dark' : 'light')
+  const html = document.documentElement
+  if (isDarkMode.value) {
+    html.setAttribute('data-bs-theme', 'dark')
+  } else {
+    html.removeAttribute('data-bs-theme')
+  }
+}
+
+// Zoom & Pan methods
+const zoomIn = () => {
+  zoomLevel.value = Math.min(zoomLevel.value + 0.1, 3);
+  updateSvgTransform();
+}
+const zoomOut = () => {
+  zoomLevel.value = Math.max(zoomLevel.value - 0.1, 0.2);
+  updateSvgTransform();
+}
+const resetZoom = () => {
+  zoomLevel.value = 1;
+  pan.value = { x: 0, y: 0 };
+  updateSvgTransform();
+}
+const togglePan = () => {
+  panMode.value = !panMode.value;
+  preview.value.style.cursor = panMode.value ? 'grab' : 'default';
+}
+
+const onPanStart = (e) => {
+  if (!panMode.value) return;
+  isPanning = true;
+  preview.value.style.cursor = 'grabbing';
+  panStart = { x: e.clientX, y: e.clientY };
+}
+
+const onPanMove = (e) => {
+  if (!isPanning || !panMode.value) return;
+  const dx = (e.clientX - panStart.x) / zoomLevel.value;
+  const dy = (e.clientY - panStart.y) / zoomLevel.value;
+  pan.value.x += dx;
+  pan.value.y += dy;
+  panStart = { x: e.clientX, y: e.clientY };
+  updateSvgTransform();
+}
+
+const onPanEnd = () => {
+  if (!panMode.value) return;
+  isPanning = false;
+  preview.value.style.cursor = 'grab';
+}
+
+onMounted(() => {
+  const html = document.documentElement
+  if (isDarkMode.value) {
+    html.setAttribute('data-bs-theme', 'dark')
+  }
+
+  const initialDoc = recentFiles.value.length > 0 ? recentFiles.value[0].content : defaultMermaid
+  if (recentFiles.value.length === 0) {
+    addRecent('default.mmd', defaultMermaid)
+    currentFileName.value = 'default.mmd'
+  }
+
+  displaySource.value = isValidMermaid(initialDoc) ? initialDoc : defaultMermaid
+  if (!isValidMermaid(initialDoc) && initialDoc !== defaultMermaid) {
+    showNotification(t('invalidInitialSource'))
+  }
+
+  const state = EditorState.create({
+    doc: initialDoc,
+    extensions: [
+      basicSetup,
+      markdown(),
+      keymap.of([indentWithTab]),
+      autocompletion({ override: [mermaidAutocomplete] }),
+      EditorView.updateListener.of((update) => {
+        if (update.docChanged) {
+          clearErrorIfValid(update.state.doc.toString())
+        }
+      })
+    ]
+  })
+
+  editor = new EditorView({
+    state,
+    parent: editorWrapper.value
+  })
+
+  renderDiagram()
+  resizePanels(window.innerWidth * 0.4)
+
+  window.addEventListener('mousemove', onDrag)
+  window.addEventListener('mouseup', stopDrag)
+  // Drag and drop file
+  window.addEventListener('dragover', (e) => e.preventDefault())
+  window.addEventListener('drop', (e) => {
+    e.preventDefault()
+    const file = e.dataTransfer?.files?.[0]
+    if (!file) return
+    const ext = file.name.split('.').pop().toLowerCase()
+    if (!['mmd', 'mermaid'].includes(ext)) return
+    const reader = new FileReader()
+    reader.onload = () => loadFromContent(file.name, reader.result?.toString() || '')
+    reader.readAsText(file, 'utf-8')
+  });
+
+  // Pan listeners
+  preview.value?.addEventListener('mousedown', onPanStart);
+  preview.value?.addEventListener('mousemove', onPanMove);
+  preview.value?.addEventListener('mouseup', onPanEnd);
+  preview.value?.addEventListener('mouseleave', onPanEnd);
+})
+
+onUnmounted(() => {
+  if (editor) editor.destroy()
+  window.removeEventListener('mousemove', onDrag)
+  window.removeEventListener('mouseup', stopDrag)
+  // Pan listeners
+  preview.value?.removeEventListener('mousedown', onPanStart);
+  preview.value?.removeEventListener('mousemove', onPanMove);
+  preview.value?.removeEventListener('mouseup', onPanEnd);
+  preview.value?.removeEventListener('mouseleave', onPanEnd);
+})
+</script>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  flex-shrink: 0;
+}
+
+.user-icon {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-icon i {
+  font-size: 1.1rem;
+}
+
+.sidebar {
+  width: 280px;
+  background: #f8f9fa;
+  border-right: 1px solid #dee2e6;
+  overflow-y: auto;
+  display: none;
+}
+
+.sidebar.show {
+  display: block;
+}
+
+.editor-preview-container {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.editor-panel {
+  flex: 0 0 auto;
+  width: 40%;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #dee2e6;
+  overflow: hidden;
+}
+
+.editor-wrapper {
+  flex: 1;
+  overflow: auto;
+  background: #fff;
+}
+
+.drag-hint {
+  padding: 8px;
+  border-top: 1px dashed #ced4da;
+  background: #f8f9fa;
+  font-size: 12px;
+  color: #999;
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity .2s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+.fade-enter-to, .fade-leave-from {
+  opacity: 1;
+}
+
+.splitter {
+  width: 8px;
+  cursor: col-resize;
+  background: #e9ecef;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.splitter:hover {
+  background: #dee2e6;
+}
+
+.apply-btn {
+  width: 20px;
+  height: 20px;
+  line-height: 1;
+  padding: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  border-radius: 50%;
+  border-width: 1px;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-panel {
+  flex: 1;
+  overflow: hidden; /* Changed from auto to hidden */
+  background: #fff;
+  position: relative; /* For positioning controls */
+}
+
+#preview {
+  cursor: default;
+}
+
+.chart-controls {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 10;
+  display: flex;
+  gap: 4px;
+  background: rgba(255,255,255,0.8);
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+:global([data-bs-theme='dark']) .sidebar {
+  background-color: #2d3139 !important;
+  color: #f8f9fa !important;
+}
+
+:global([data-bs-theme='dark']) .editor-wrapper {
+  background-color: #1e1e1e !important;
+}
+
+:global([data-bs-theme='dark']) .preview-panel {
+  background-color: #1e1e1e !important;
+  color: #f8f9fa !important;
+}
+
+:global([data-bs-theme='dark']) .cm-editor {
+  background-color: #1e1e1e !important;
+  color: #d4d4d4 !important;
+}
+
+:global([data-bs-theme='dark']) .cm-gutters {
+  background-color: #252526 !important;
+}
+
+:global([data-bs-theme='dark']) .chart-controls {
+  background: rgba(40,40,40,0.8);
+}
+
+.chart-controls .zoom-label {
+  font-size: 11px;
+  min-width: 36px;
+  text-align: center;
+  line-height: 30px;
+  color: #666;
+  user-select: none;
+}
+
+:global([data-bs-theme='dark']) .chart-controls .zoom-label {
+  color: #aaa;
+}
+
+:global([data-bs-theme='dark']) .btn-outline-secondary {
+  border-color: #555;
+  color: #aaa;
+}
+
+/* CodeMirror autocomplete styling */
+.cm-tooltip-autocomplete {
+  border: 1px solid #dee2e6 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
+  font-size: 13px !important;
+}
+
+:global([data-bs-theme='dark']) .cm-tooltip-autocomplete {
+  background: #2d3139 !important;
+  border-color: #555 !important;
+}
+
+.cm-tooltip-autocomplete > ul > li {
+  padding: 4px 8px !important;
+  border-radius: 3px !important;
+}
+
+.cm-tooltip-autocomplete > ul > li[aria-selected] {
+  background: #0d6efd !important;
+  color: white !important;
+}
+
+:global([data-bs-theme='dark']) .cm-tooltip-autocomplete > ul > li[aria-selected] {
+  background: #0d6efd !important;
+}
+
+.cm-completionLabel {
+  font-weight: 600 !important;
+}
+
+.cm-completionDetail {
+  color: #888 !important;
+  font-style: italic !important;
+  font-size: 11px !important;
+  margin-left: 8px !important;
+}
+
+:global([data-bs-theme='dark']) .cm-completionDetail {
+  color: #aaa !important;
+}
+</style>
