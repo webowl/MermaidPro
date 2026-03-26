@@ -372,7 +372,15 @@ const loadFromContent = (name, content) => {
   editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: content } })
   currentFileName.value = name
   addRecent(name, content)
-  showNotification(t('fileLoaded'))
+  // Auto-apply on file open
+  const source = content
+  if (source.trim() && isValidMermaid(source)) {
+    displaySource.value = source
+    renderDiagram()
+    showNotification(t('fileLoaded'))
+  } else {
+    showNotification(t('invalidInitialSource'))
+  }
 }
 
 const handleFileOpen = (event) => {
@@ -486,9 +494,15 @@ onMounted(() => {
     currentFileName.value = 'default.mmd'
   }
 
-  displaySource.value = isValidMermaid(initialDoc) ? initialDoc : defaultMermaid
-  if (!isValidMermaid(initialDoc) && initialDoc !== defaultMermaid) {
-    showNotification(t('invalidInitialSource'))
+  if (isValidMermaid(initialDoc)) {
+    displaySource.value = initialDoc
+    renderDiagram()
+  } else {
+    displaySource.value = defaultMermaid
+    renderDiagram()
+    if (initialDoc !== defaultMermaid) {
+      showNotification(t('invalidInitialSource'))
+    }
   }
 
   const state = EditorState.create({
