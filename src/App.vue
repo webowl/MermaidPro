@@ -574,18 +574,41 @@ const loadFromContent = async (name, content) => {
 }
 
 const handleFileOpen = (event) => {
-  const file = event.target?.files?.[0]
-  if (!file) return
-  const ext = file.name.split('.').pop().toLowerCase()
-  if (!['mmd', 'mermaid'].includes(ext)) {
-    showNotification(t('unsupportedFile'))
-    return
+  try {
+    const file = event.target?.files?.[0]
+    if (!file) {
+      showNotification('No file selected')
+      return
+    }
+    
+    const ext = file.name.split('.').pop()?.toLowerCase()
+    if (!ext || !['mmd', 'mermaid'].includes(ext)) {
+      showNotification(t('unsupportedFile'))
+      return
+    }
+    
+    const reader = new FileReader()
+    reader.onerror = () => {
+      showNotification('Failed to read file')
+    }
+    reader.onload = async () => {
+      try {
+        const content = reader.result
+        if (!content || typeof content !== 'string') {
+          showNotification('File is empty or invalid')
+          return
+        }
+        await loadFromContent(file.name, content)
+      } catch (e) {
+        console.error('Error loading file:', e)
+        showNotification('Error loading file')
+      }
+    }
+    reader.readAsText(file, 'utf-8')
+  } catch (e) {
+    console.error('File open error:', e)
+    showNotification('Error opening file')
   }
-  const reader = new FileReader()
-  reader.onload = async () => {
-    await loadFromContent(file.name, reader.result?.toString() || '')
-  }
-  reader.readAsText(file, 'utf-8')
 }
 
 const saveFile = () => {
@@ -734,17 +757,36 @@ onMounted(async () => {
   // Drag and drop file
   window.addEventListener('dragover', (e) => e.preventDefault())
   window.addEventListener('drop', async (e) => {
-    e.preventDefault()
-    const file = e.dataTransfer?.files?.[0]
-    if (!file) return
-    const ext = file.name.split('.').pop().toLowerCase()
-    if (!['mmd', 'mermaid'].includes(ext)) return
-    const reader = new FileReader()
-    reader.onload = async () => {
-      const content = reader.result?.toString() || ''
-      await loadFromContent(file.name, content)
+    try {
+      e.preventDefault()
+      const file = e.dataTransfer?.files?.[0]
+      if (!file) return
+      
+      const ext = file.name.split('.').pop()?.toLowerCase()
+      if (!ext || !['mmd', 'mermaid'].includes(ext)) return
+      
+      const reader = new FileReader()
+      reader.onerror = () => {
+        showNotification('Failed to read file')
+      }
+      reader.onload = async () => {
+        try {
+          const content = reader.result
+          if (!content || typeof content !== 'string') {
+            showNotification('File is empty or invalid')
+            return
+          }
+          await loadFromContent(file.name, content)
+        } catch (err) {
+          console.error('Error loading dropped file:', err)
+          showNotification('Error loading file')
+        }
+      }
+      reader.readAsText(file, 'utf-8')
+    } catch (err) {
+      console.error('Drop error:', err)
+      showNotification('Error processing file')
     }
-    reader.readAsText(file, 'utf-8')
   });
 
   // Pan listeners
