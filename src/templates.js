@@ -1,304 +1,282 @@
-// Mermaid 模板库 - 所有语法已验证
+// Mermaid diagram templates and wizard configurations
 export const templates = {
   flowchart: {
-    label: { en: 'Flowchart', zh: '流程图' },
-    icon: '➡️',
-    items: [
+    id: 'flowchart',
+    name: 'flowchart',
+    icon: '⬜',
+    description: 'Create flowcharts and process diagrams',
+    examples: [
       {
-        id: 'flow-simple',
-        label: { en: 'Simple Flow', zh: '简单流程' },
+        name: 'Simple Process',
         code: `flowchart TD
-    A[Start] --> B{Decision}
-    B -->|Yes| C[Action A]
-    B -->|No| D[Action B]
-    C --> E[End]
-    D --> E`
-      },
-      {
-        id: 'flow-horizontal',
-        label: { en: 'Horizontal', zh: '横向流程' },
-        code: `flowchart LR
-    A[Input] --> B[Process]
-    B --> C{Check}
-    C -->|Pass| D[Output]
-    C -->|Fail| E[Retry]
+    A[Start] --> B[Process]
+    B --> C{Decision}
+    C -->|Yes| D[End]
+    C -->|No| E[Retry]
     E --> B`
-      }
-    ]
-  },
-
-  sequence: {
-    label: { en: 'Sequence', zh: '序列图' },
-    icon: '📱',
-    items: [
-      {
-        id: 'seq-basic',
-        label: { en: 'Basic', zh: '基础' },
-        code: `sequenceDiagram
-    participant A as Alice
-    participant B as Bob
-    A->>B: Hello
-    B-->>A: Hi!`
       },
       {
-        id: 'seq-login',
-        label: { en: 'Login', zh: '登录' },
-        code: `sequenceDiagram
-    participant U as User
-    participant S as Server
-    participant D as DB
-    U->>S: Login
-    S->>D: Verify
-    D-->>S: OK
-    S-->>U: Token`
+        name: 'Approval Flow',
+        code: `flowchart TD
+    A[Submit Request] --> B[Manager Review]
+    B --> C{Approved?}
+    C -->|Yes| D[Process]
+    C -->|No| E[Reject]
+    D --> F[Complete]
+    E --> G[End]`
+      },
+      {
+        name: 'User Registration',
+        code: `flowchart LR
+    A[User] --> B[Enter Email]
+    B --> C{Valid?}
+    C -->|No| B
+    C -->|Yes| D[Verify Email]
+    D --> E[Create Account]
+    E --> F[Success]`
       }
     ]
   },
-
-  classDiagram: {
-    label: { en: 'Class', zh: '类图' },
+  sequence: {
+    id: 'sequence',
+    name: 'sequenceDiagram',
     icon: '📊',
-    items: [
+    description: 'Show interactions between entities over time',
+    examples: [
       {
-        id: 'class-basic',
-        label: { en: 'Basic', zh: '基础' },
+        name: 'User Login',
+        code: `sequenceDiagram
+    participant User
+    participant App
+    participant Server
+    User->>App: Click Login
+    App->>Server: Send Credentials
+    Server->>Server: Validate
+    Server->>App: Return Token
+    App->>User: Show Dashboard`
+      },
+      {
+        name: 'Payment Process',
+        code: `sequenceDiagram
+    participant Customer
+    participant Shop
+    participant Bank
+    Customer->>Shop: Add to Cart
+    Customer->>Shop: Checkout
+    Shop->>Bank: Process Payment
+    Bank->>Bank: Verify
+    Bank->>Shop: Approved
+    Shop->>Customer: Order Confirmed`
+      }
+    ]
+  },
+  class: {
+    id: 'class',
+    name: 'classDiagram',
+    icon: '📦',
+    description: 'Define class structures and relationships',
+    examples: [
+      {
+        name: 'Simple Class',
         code: `classDiagram
     class Animal {
         +String name
+        +Int age
         +makeSound()
     }
     class Dog {
+        +String breed
         +bark()
     }
     Animal <|-- Dog`
       }
     ]
   },
-
-  erDiagram: {
-    label: { en: 'ER Diagram', zh: 'ER图' },
-    icon: '🔗',
-    items: [
+  state: {
+    id: 'state',
+    name: 'stateDiagram-v2',
+    icon: '🔄',
+    description: 'Show state transitions',
+    examples: [
       {
-        id: 'er-basic',
-        label: { en: 'Basic', zh: '基础' },
+        name: 'Order States',
+        code: `stateDiagram-v2
+    [*] --> Pending
+    Pending --> Processing: Confirm
+    Processing --> Shipped: Pack
+    Shipped --> Delivered: Deliver
+    Delivered --> [*]
+    Processing --> Cancelled: Cancel`
+      }
+    ]
+  },
+  er: {
+    id: 'er',
+    name: 'erDiagram',
+    icon: '🗄️',
+    description: 'Entity-relationship diagrams',
+    examples: [
+      {
+        name: 'E-commerce DB',
         code: `erDiagram
     CUSTOMER ||--o{ ORDER : places
-    ORDER ||--|{ ITEM : contains
+    ORDER ||--|{ LINE-ITEM : contains
+    PRODUCT ||--o{ LINE-ITEM : "ordered in"
     CUSTOMER {
-        int id PK
+        int id
+        string email
         string name
     }
     ORDER {
-        int id PK
+        int id
+        string status
         date created
-    }
-    ITEM {
-        string name
-        int qty
     }`
       }
     ]
   },
-
-  stateDiagram: {
-    label: { en: 'State', zh: '状态图' },
-    icon: '🔄',
-    items: [
-      {
-        id: 'state-basic',
-        label: { en: 'Basic', zh: '基础' },
-        code: `stateDiagram-v2
-    [*] --> Idle
-    Idle --> Running : Start
-    Running --> Done : Finish
-    Done --> [*]`
-      }
-    ]
-  },
-
   gantt: {
-    label: { en: 'Gantt', zh: '甘特图' },
+    id: 'gantt',
+    name: 'gantt',
     icon: '📅',
-    items: [
+    description: 'Project timeline and schedules',
+    examples: [
       {
-        id: 'gantt-basic',
-        label: { en: 'Basic', zh: '基础' },
+        name: 'Project Plan',
         code: `gantt
-    title Project Plan
+    title Project Timeline
     dateFormat YYYY-MM-DD
-    section Phase 1
-    Task A :done, 2024-01-01, 7d
-    Task B :active, 2024-01-08, 5d
-    section Phase 2
-    Task C :2024-01-15, 10d`
+    section Planning
+    Requirements :req, 2024-01-01, 10d
+    Design :des, 2024-01-05, 15d
+    section Development
+    Backend :be, 2024-01-15, 20d
+    Frontend :fe, 2024-01-20, 20d
+    section Testing
+    QA :qa, 2024-02-05, 10d`
       }
     ]
   },
-
   pie: {
-    label: { en: 'Pie', zh: '饼图' },
+    id: 'pie',
+    name: 'pie',
     icon: '🥧',
-    items: [
+    description: 'Pie charts for data visualization',
+    examples: [
       {
-        id: 'pie-basic',
-        label: { en: 'Basic', zh: '基础' },
-        code: `pie showData
-    title Market Share
-    "A" : 40
-    "B" : 30
-    "C" : 20
-    "D" : 10`
+        name: 'Market Share',
+        code: `pie title Market Share
+    "Product A" : 35
+    "Product B" : 25
+    "Product C" : 20
+    "Others" : 20`
       }
     ]
   },
-
   mindmap: {
-    label: { en: 'Mindmap', zh: '思维导图' },
+    id: 'mindmap',
+    name: 'mindmap',
     icon: '🧠',
-    items: [
+    description: 'Mind maps for brainstorming',
+    examples: [
       {
-        id: 'mindmap-basic',
-        label: { en: 'Basic', zh: '基础' },
+        name: 'Project Planning',
         code: `mindmap
-  root((Main))
-    Branch A
-      Sub A1
-    Branch B
-      Sub B1`
-      }
-    ]
-  },
-
-  timeline: {
-    label: { en: 'Timeline', zh: '时间线' },
-    icon: '⏰',
-    items: [
-      {
-        id: 'timeline-basic',
-        label: { en: 'Basic', zh: '基础' },
-        code: `timeline
-    title History
-    2023 : Started
-    2024 : V2.0`
-      }
-    ]
-  },
-
-  gitGraph: {
-    label: { en: 'Git', zh: 'Git图' },
-    icon: '📈',
-    items: [
-      {
-        id: 'git-basic',
-        label: { en: 'Basic', zh: '基础' },
-        code: `gitGraph
-    commit
-    commit
-    branch feature
-    checkout feature
-    commit
-    checkout main
-    merge feature`
-      }
-    ]
-  },
-
-  journey: {
-    label: { en: 'Journey', zh: '用户旅程' },
-    icon: '🚶',
-    items: [
-      {
-        id: 'journey-basic',
-        label: { en: 'Basic', zh: '基础' },
-        code: `journey
-    title User Journey
-    section Browse
-      Visit: 5: User
-    section Buy
-      Checkout: 4: User`
-      }
-    ]
-  },
-
-  quadrantChart: {
-    label: { en: 'Quadrant', zh: '象限图' },
-    icon: '📊',
-    items: [
-      {
-        id: 'quadrant-basic',
-        label: { en: 'Basic', zh: '基础' },
-        code: `quadrantChart
-    title Matrix
-    x-axis Low --> High
-    y-axis Low --> High
-    quadrant-1 Q1
-    quadrant-2 Q2
-    quadrant-3 Q3
-    quadrant-4 Q4
-    A: [0.7, 0.8]
-    B: [0.3, 0.4]`
-      }
-    ]
-  },
-
-  xychart: {
-    label: { en: 'XY Chart', zh: 'XY图表' },
-    icon: '📈',
-    items: [
-      {
-        id: 'xy-basic',
-        label: { en: 'Basic', zh: '基础' },
-        code: `xychart-beta
-    title Sales
-    x-axis [Q1, Q2, Q3, Q4]
-    y-axis Sales 0 --> 100
-    bar [50, 60, 45, 70]`
-      }
-    ]
-  },
-
-  kanban: {
-    label: { en: 'Kanban', zh: '看板' },
-    icon: '📋',
-    items: [
-      {
-        id: 'kanban-basic',
-        label: { en: 'Basic', zh: '基础' },
-        code: `kanban
-    2-Todo
-      Task 1
-    3-Doing
-      Task 2
-    4-Done
-      Task 3`
-      }
-    ]
-  },
-
-  packet: {
-    label: { en: 'Packet', zh: '数据包' },
-    icon: '📨',
-    items: [
-      {
-        id: 'packet-basic',
-        label: { en: 'Basic', zh: '基础' },
-        code: `packet-beta
-    title TCP Header
-    0-15: "Source Port"
-    16-31: "Dest Port"
-    32-63: "Sequence Number"
-    64-95: "Acknowledgment"`
+    root((Project))
+      Planning
+        Requirements
+        Timeline
+        Budget
+      Development
+        Backend
+        Frontend
+        Database
+      Testing
+        Unit Tests
+        Integration
+        UAT`
       }
     ]
   }
 }
 
-export const diagramTypes = Object.entries(templates).map(([key, value]) => ({
-  key,
-  label: value.label,
-  icon: value.icon,
-  count: value.items.length
-}))
+// Wizard steps for guided diagram creation
+export const wizardSteps = {
+  flowchart: [
+    {
+      step: 1,
+      title: 'flowchart.wizard.step1',
+      description: 'flowchart.wizard.desc1',
+      action: 'selectDirection',
+      options: [
+        { label: 'Top-Down', value: 'TD' },
+        { label: 'Left-Right', value: 'LR' },
+        { label: 'Bottom-Top', value: 'BT' },
+        { label: 'Right-Left', value: 'RL' }
+      ]
+    },
+    {
+      step: 2,
+      title: 'flowchart.wizard.step2',
+      description: 'flowchart.wizard.desc2',
+      action: 'addNodes',
+      template: 'flowchart {direction}\n    A[Start] --> B[Process]\n    B --> C[End]'
+    },
+    {
+      step: 3,
+      title: 'flowchart.wizard.step3',
+      description: 'flowchart.wizard.desc3',
+      action: 'addConnections',
+      template: 'flowchart {direction}\n    A[Start] --> B[Process]\n    B --> C{Decision}\n    C -->|Yes| D[End]\n    C -->|No| E[Retry]'
+    }
+  ],
+  sequence: [
+    {
+      step: 1,
+      title: 'sequence.wizard.step1',
+      description: 'sequence.wizard.desc1',
+      action: 'addParticipants',
+      template: 'sequenceDiagram\n    participant A\n    participant B\n    participant C'
+    },
+    {
+      step: 2,
+      title: 'sequence.wizard.step2',
+      description: 'sequence.wizard.desc2',
+      action: 'addInteractions',
+      template: 'sequenceDiagram\n    participant A\n    participant B\n    A->>B: Message\n    B->>A: Response'
+    }
+  ]
+}
 
-export const defaultTemplate = templates.flowchart.items[0]
+// Node shapes for visual selector
+export const nodeShapes = [
+  { id: 'rect', label: 'Rectangle', syntax: 'A[Text]', icon: '▭' },
+  { id: 'round', label: 'Rounded', syntax: 'A(Text)', icon: '◯' },
+  { id: 'diamond', label: 'Diamond', syntax: 'A{Text}', icon: '◇' },
+  { id: 'circle', label: 'Circle', syntax: 'A((Text))', icon: '●' },
+  { id: 'hexagon', label: 'Hexagon', syntax: 'A>{{Text}}', icon: '⬡' },
+  { id: 'parallelogram', label: 'Parallelogram', syntax: 'A[/Text/]', icon: '▱' },
+  { id: 'trapezoid', label: 'Trapezoid', syntax: 'A[\\Text\\]', icon: '▲' }
+]
+
+// Connection types
+export const connectionTypes = [
+  { id: 'arrow', label: 'Arrow', syntax: '-->', icon: '→' },
+  { id: 'line', label: 'Line', syntax: '---', icon: '—' },
+  { id: 'dotted', label: 'Dotted', syntax: '-.->', icon: '⋯' },
+  { id: 'thick', label: 'Thick', syntax: '==>', icon: '⇒' },
+  { id: 'circle', label: 'Circle End', syntax: 'o--', icon: '◯' },
+  { id: 'cross', label: 'Cross End', syntax: 'x--', icon: '✕' }
+]
+
+// Diagram types for UI
+export const diagramTypes = [
+  { key: 'flowchart', name: 'Flowchart', icon: '⬜' },
+  { key: 'sequence', name: 'Sequence', icon: '📊' },
+  { key: 'class', name: 'Class', icon: '📦' },
+  { key: 'state', name: 'State', icon: '🔄' },
+  { key: 'er', name: 'ER', icon: '🗄️' },
+  { key: 'gantt', name: 'Gantt', icon: '📅' },
+  { key: 'pie', name: 'Pie', icon: '🥧' },
+  { key: 'mindmap', name: 'Mindmap', icon: '🧠' }
+]

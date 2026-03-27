@@ -33,5 +33,46 @@
   "allTypes": "所有类型",
   "selectTemplate": "选择模板",
   "selectTemplateHint": "选择一个模板快速开始",
-  "fromTemplate": "来自模板"
+  "fromTemplate": "来自模板",
+  "wizard": "分步创建",
+  "startWizard": "开始向导",
+  "nextStep": "下一步",
+  "prevStep": "上一步",
+  "finishWizard": "完成",
+  "cancelWizard": "取消",
+  "step": "步骤",
+  "of": "共",
+  "flowchart": {
+    "name": "流程图",
+    "wizard": {
+      "step1": "选择方向",
+      "desc1": "选择流程图的流向",
+      "step2": "添加节点",
+      "desc2": "添加流程步骤和决策点",
+      "step3": "连接节点",
+      "desc3": "定义节点之间的关系"
+    }
+  },
+  "sequence": {
+    "name": "序列图",
+    "wizard": {
+      "step1": "添加参与者",
+      "desc1": "这个序列中有哪些参与者？",
+      "step2": "添加交互",
+      "desc2": "定义参与者之间的消息"
+    }
+  },
+  "nodeSelector": "节点形状",
+  "connectionSelector": "连接类型",
+  "addNode": "添加节点",
+  "addConnection": "添加连接",
+  "rectangle": "矩形",
+  "rounded": "圆角",
+  "diamond": "菱形",
+  "circle": "圆形",
+  "hexagon": "六边形",
+  "arrow": "箭头",
+  "line": "直线",
+  "dotted": "虚线",
+  "thick": "粗线"
 }

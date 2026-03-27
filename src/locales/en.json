@@ -65,5 +65,46 @@
   "quadrant-basic": "Basic Quadrant",
   "xy-basic": "Basic Chart",
   "kanban-basic": "Basic Kanban",
-  "packet-basic": "Basic Packet"
+  "packet-basic": "Basic Packet",
+  "wizard": "Guided Creation",
+  "startWizard": "Start Wizard",
+  "nextStep": "Next",
+  "prevStep": "Previous",
+  "finishWizard": "Finish",
+  "cancelWizard": "Cancel",
+  "step": "Step",
+  "of": "of",
+  "flowchart": {
+    "name": "Flowchart",
+    "wizard": {
+      "step1": "Choose Direction",
+      "desc1": "Select how your flowchart flows",
+      "step2": "Add Nodes",
+      "desc2": "Add process steps and decision points",
+      "step3": "Connect Nodes",
+      "desc3": "Define relationships between nodes"
+    }
+  },
+  "sequence": {
+    "name": "Sequence Diagram",
+    "wizard": {
+      "step1": "Add Participants",
+      "desc1": "Who are the actors in this sequence?",
+      "step2": "Add Interactions",
+      "desc2": "Define messages between participants"
+    }
+  },
+  "nodeSelector": "Node Shapes",
+  "connectionSelector": "Connection Types",
+  "addNode": "Add Node",
+  "addConnection": "Add Connection",
+  "rectangle": "Rectangle",
+  "rounded": "Rounded",
+  "diamond": "Diamond",
+  "circle": "Circle",
+  "hexagon": "Hexagon",
+  "arrow": "Arrow",
+  "line": "Line",
+  "dotted": "Dotted",
+  "thick": "Thick"
 }
