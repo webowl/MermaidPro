@@ -540,7 +540,19 @@ const loadFromContent = async (name, content) => {
     return
   }
 
-  // Validate BEFORE loading
+  // ALWAYS load content to editor first
+  try {
+    editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: content } })
+    currentFileName.value = name
+    addRecent(name, content)
+    showNotification(t('fileLoaded'))
+  } catch (e) {
+    console.error('Failed to load to editor:', e)
+    showNotification('Failed to load file')
+    return
+  }
+
+  // Then validate and try to render
   let isValid = false
   try {
     isValid = await isValidMermaid(content)
@@ -550,27 +562,26 @@ const loadFromContent = async (name, content) => {
   }
 
   if (!isValid) {
-    // Show error, keep current diagram displayed
+    // Show error in preview panel, but keep content in editor
     errorMessage.value = `${t('parseError')}: ${t('syntaxError')}`
     hasError.value = true
-    showNotification(t('invalidInitialSource'))
+    // Show error message in preview instead of chart
+    const container = preview.value
+    if (container) {
+      container.innerHTML = `<div class="alert alert-warning m-3">
+        <strong>${t('parseError')}</strong><br>
+        ${t('syntaxError')}<br><br>
+        <small>Fix the syntax in the editor and click the apply button (•) to preview.</small>
+      </div>`
+    }
     return
   }
 
-  // Content is valid - load it
-  try {
-    editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: content } })
-    currentFileName.value = name
-    addRecent(name, content)
-    displaySource.value = content
-    hasError.value = false
-    errorMessage.value = ''
-    renderDiagram()
-    showNotification(t('fileLoaded'))
-  } catch (e) {
-    console.error('Failed to load content:', e)
-    showNotification('Failed to load file')
-  }
+  // Valid - render diagram
+  displaySource.value = content
+  hasError.value = false
+  errorMessage.value = ''
+  renderDiagram()
 }
 
 const handleFileOpen = (event) => {
