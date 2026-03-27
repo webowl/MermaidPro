@@ -340,8 +340,8 @@ const displaySource = ref(defaultMermaid)
 const hasPending = computed(() => editor && getEditorContent() !== displaySource.value)
 
 // Auto-clear error when content becomes valid again
-const clearErrorIfValid = (content) => {
-  if (hasError.value && content.trim() && isValidMermaid(content)) {
+const clearErrorIfValid = async (content) => {
+  if (hasError.value && content.trim() && await isValidMermaid(content)) {
     hasError.value = false
     errorMessage.value = ''
   }
@@ -405,9 +405,9 @@ const getErrorLine = (message) => {
   return match ? Number(match[1]) : null
 }
 
-const isValidMermaid = (source) => {
+const isValidMermaid = async (source) => {
   try {
-    mermaid.parse(source)
+    await mermaid.parse(source)
     return true
   } catch {
     return false
@@ -426,7 +426,7 @@ const applyDiagram = async () => {
     return
   }
 
-  if (isValidMermaid(source)) {
+  if (await isValidMermaid(source)) {
     hasError.value = false
     errorMessage.value = ''
     displaySource.value = source
@@ -488,13 +488,13 @@ const openFileInput = () => {
   fileInput.value.click()
 }
 
-const loadFromContent = (name, content) => {
+const loadFromContent = async (name, content) => {
   editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: content } })
   currentFileName.value = name
   addRecent(name, content)
   // Auto-apply on file open
   const source = content
-  if (source.trim() && isValidMermaid(source)) {
+  if (source.trim() && await isValidMermaid(source)) {
     displaySource.value = source
     renderDiagram()
     showNotification(t('fileLoaded'))
@@ -602,7 +602,7 @@ const onPanEnd = () => {
   preview.value.style.cursor = 'grab';
 }
 
-onMounted(() => {
+onMounted(async () => {
   const html = document.documentElement
   if (isDarkMode.value) {
     html.setAttribute('data-bs-theme', 'dark')
@@ -614,7 +614,7 @@ onMounted(() => {
     currentFileName.value = 'default.mmd'
   }
 
-  if (isValidMermaid(initialDoc)) {
+  if (await isValidMermaid(initialDoc)) {
     displaySource.value = initialDoc
     renderDiagram()
   } else {
