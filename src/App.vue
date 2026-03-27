@@ -436,10 +436,12 @@ const getErrorLine = (message) => {
 }
 
 const isValidMermaid = async (source) => {
+  if (!source || typeof source !== 'string') return false
   try {
-    await mermaid.parse(source)
-    return true
-  } catch {
+    const result = await mermaid.parse(source)
+    return result !== false
+  } catch (e) {
+    console.warn('Mermaid parse error:', e?.message || e)
     return false
   }
 }
