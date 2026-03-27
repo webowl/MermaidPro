@@ -489,16 +489,23 @@ const openFileInput = () => {
 }
 
 const loadFromContent = async (name, content) => {
-  editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: content } })
-  currentFileName.value = name
-  addRecent(name, content)
-  // Auto-apply on file open
-  const source = content
-  if (source.trim() && await isValidMermaid(source)) {
-    displaySource.value = source
-    renderDiagram()
-    showNotification(t('fileLoaded'))
-  } else {
+  try {
+    if (!editor || !content) return
+
+    editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: content } })
+    currentFileName.value = name
+    addRecent(name, content)
+
+    // Validate content
+    if (content.trim() && await isValidMermaid(content)) {
+      displaySource.value = content
+      renderDiagram()
+      showNotification(t('fileLoaded'))
+    } else {
+      showNotification(t('invalidInitialSource'))
+    }
+  } catch (e) {
+    console.error('Failed to load content:', e)
     showNotification(t('invalidInitialSource'))
   }
 }
@@ -608,25 +615,39 @@ onMounted(async () => {
     html.setAttribute('data-bs-theme', 'dark')
   }
 
-  const initialDoc = recentFiles.value.length > 0 ? recentFiles.value[0].content : defaultMermaid
+  // Safely get initial document
+  let initialDoc = defaultMermaid
+  try {
+    if (recentFiles.value.length > 0 && recentFiles.value[0].content) {
+      initialDoc = recentFiles.value[0].content
+    }
+  } catch (e) {
+    console.warn('Failed to load recent file:', e)
+    initialDoc = defaultMermaid
+  }
+
   if (recentFiles.value.length === 0) {
     addRecent('default.mmd', defaultMermaid)
     currentFileName.value = 'default.mmd'
   }
 
-  if (await isValidMermaid(initialDoc)) {
-    displaySource.value = initialDoc
-    renderDiagram()
-  } else {
-    displaySource.value = defaultMermaid
-    renderDiagram()
-    if (initialDoc !== defaultMermaid) {
+  // Validate and set initial content
+  let validContent = defaultMermaid
+  try {
+    if (initialDoc && initialDoc.trim() && await isValidMermaid(initialDoc)) {
+      validContent = initialDoc
+    } else if (initialDoc !== defaultMermaid) {
       showNotification(t('invalidInitialSource'))
     }
+  } catch (e) {
+    console.warn('Mermaid validation failed:', e)
   }
 
+  displaySource.value = validContent
+  renderDiagram()
+
   const state = EditorState.create({
-    doc: initialDoc,
+    doc: validContent,
     extensions: [
       basicSetup,
       markdown(),
