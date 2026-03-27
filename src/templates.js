@@ -375,17 +375,17 @@ export const templates = {
     title Software Project Roadmap
     dateFormat YYYY-MM-DD
     section Planning
-    Requirements Analysis :a1, 2024-01-01, 14d
-    System Design         :a2, after a1, 10d
+    Requirements Analysis :done, 2024-01-01, 14d
+    System Design         :done, 2024-01-15, 10d
     section Development
-    Backend Development   :d1, after a2, 21d
-    Frontend Development  :d2, after a2, 21d
+    Backend Development   :active, 2024-01-25, 21d
+    Frontend Development   :active, 2024-01-25, 21d
     section Testing
-    Unit Testing         :t1, after d1, 7d
-    Integration Testing  :t2, after t1, 7d
+    Unit Testing          :2024-02-15, 7d
+    Integration Testing   :2024-02-22, 7d
     section Launch
-    Deployment           :l1, after t2, 3d
-    Release              :l2, after l1, 1d`
+    Deployment            :2024-03-01, 3d
+    Release               :2024-03-04, 1d`
       },
       {
         id: 'gantt-marketing',
@@ -395,17 +395,17 @@ export const templates = {
     title Product Launch Campaign
     dateFormat YYYY-MM-DD
     section Pre-Launch
-    Market Research      :2024-01-01, 14d
-    Competitor Analysis  :2024-01-08, 10d
+    Market Research       :done, 2024-01-01, 14d
+    Competitor Analysis    :done, 2024-01-08, 10d
     section Content
-    Website Update       :2024-01-15, 7d
-    Social Media Posts   :2024-01-15, 14d
+    Website Update         :active, 2024-01-18, 7d
+    Social Media Posts     :active, 2024-01-18, 14d
     section Launch
-    Press Release        :2024-02-01, 2d
-    Email Campaign       :2024-02-01, 7d
+    Press Release          :2024-02-01, 2d
+    Email Campaign         :2024-02-01, 7d
     section Follow-up
-    Analytics Review     :2024-02-15, 7d
-    Customer Feedback    :2024-02-15, 14d`
+    Analytics Review       :2024-02-15, 7d
+    Customer Feedback      :2024-02-15, 14d`
       },
       {
         id: 'gantt-sprint',
@@ -415,15 +415,14 @@ export const templates = {
     title Sprint 23 Timeline
     dateFormat YYYY-MM-DD
     section Week 1
-    Sprint Planning      :p1, 2024-01-15, 1d
-    Feature A Dev       :a1, 2024-01-16, 3d
-    Feature B Dev       :b1, 2024-01-16, 2d
-    Daily Standups      :ds1, 2024-01-15, 5d
+    Sprint Planning       :done, 2024-01-15, 1d
+    Feature A Dev          :active, 2024-01-16, 3d
+    Feature B Dev          :active, 2024-01-16, 2d
     section Week 2
-    Feature A Testing   :a2, 2024-01-22, 2d
-    Feature B Testing   :b2, 2024-01-22, 2d
-    Bug Fixes           :fix1, 2024-01-24, 2d
-    Sprint Review       :review1, 2024-01-26, 1d`
+    Feature A Testing     :2024-01-22, 2d
+    Feature B Testing     :2024-01-22, 2d
+    Bug Fixes             :2024-01-24, 2d
+    Sprint Review         :2024-01-26, 1d`
       }
     ]
   },
@@ -637,20 +636,20 @@ export const templates = {
         label: { en: 'Feature Branch', zh: '功能分支' },
         desc: { en: 'Feature branch workflow', zh: '功能分支工作流' },
         code: `gitGraph
-    commit id: "init"
-    commit id: "add README"
+    commit "init"
+    commit "add README"
     branch feature
     checkout feature
-    commit id: "feature A"
-    commit id: "feature B"
+    commit "feature A"
+    commit "feature B"
     checkout main
-    commit id: "hotfix"
-    merge feature : Merge "feature" into main
+    commit "hotfix"
+    merge feature
     checkout feature
-    commit id: "feature C"
+    commit "feature C"
     checkout main
-    commit id: "v1.0.0"
-    tag: "v1.0.0"`
+    commit "v1.0.0"
+    tag v1.0.0`
       }
     ]
   }
