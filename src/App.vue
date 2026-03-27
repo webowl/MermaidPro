@@ -575,11 +575,20 @@ const loadFromContent = async (name, content) => {
 
 const handleFileOpen = (event) => {
   try {
-    const file = event.target?.files?.[0]
+    const input = event.target
+    if (!input || !input.files) {
+      showNotification('No file input')
+      return
+    }
+    
+    const file = input.files[0]
     if (!file) {
       showNotification('No file selected')
       return
     }
+    
+    // Reset input so same file can be opened again
+    input.value = ''
     
     const ext = file.name.split('.').pop()?.toLowerCase()
     if (!ext || !['mmd', 'mermaid'].includes(ext)) {
@@ -587,9 +596,16 @@ const handleFileOpen = (event) => {
       return
     }
     
+    // Check file size (max 1MB)
+    if (file.size > 1024 * 1024) {
+      showNotification('File too large (max 1MB)')
+      return
+    }
+    
     const reader = new FileReader()
     reader.onerror = () => {
       showNotification('Failed to read file')
+      input.value = ''
     }
     reader.onload = async () => {
       try {
