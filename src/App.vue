@@ -662,6 +662,13 @@ onMounted(async () => {
     html.setAttribute('data-bs-theme', 'dark')
   }
 
+  // Initialize Mermaid
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: isDarkMode.value ? 'dark' : 'default',
+    securityLevel: 'loose'
+  })
+
   // Clear corrupted localStorage data
   try {
     const stored = localStorage.getItem('mermaidpro-recent')
