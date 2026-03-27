@@ -284,8 +284,11 @@ export const templates = {
         id: 'packet-basic',
         label: { en: 'Basic', zh: '基础' },
         code: `packet-beta
-    0-15: Source Port
-    16-31: Dest Port`
+    title TCP Header
+    0-15: "Source Port"
+    16-31: "Dest Port"
+    32-63: "Sequence Number"
+    64-95: "Acknowledgment"`
       }
     ]
   }
