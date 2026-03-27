@@ -489,24 +489,46 @@ const openFileInput = () => {
 }
 
 const loadFromContent = async (name, content) => {
-  try {
-    if (!editor || !content) return
+  if (!editor) {
+    showNotification('Editor not ready')
+    return
+  }
 
+  if (!content || !content.trim()) {
+    showNotification(t('editorEmpty'))
+    return
+  }
+
+  // Validate BEFORE loading
+  let isValid = false
+  try {
+    isValid = await isValidMermaid(content)
+  } catch (e) {
+    console.warn('Validation error:', e)
+    isValid = false
+  }
+
+  if (!isValid) {
+    // Show error, keep current diagram displayed
+    errorMessage.value = `${t('parseError')}: ${t('syntaxError')}`
+    hasError.value = true
+    showNotification(t('invalidInitialSource'))
+    return
+  }
+
+  // Content is valid - load it
+  try {
     editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: content } })
     currentFileName.value = name
     addRecent(name, content)
-
-    // Validate content
-    if (content.trim() && await isValidMermaid(content)) {
-      displaySource.value = content
-      renderDiagram()
-      showNotification(t('fileLoaded'))
-    } else {
-      showNotification(t('invalidInitialSource'))
-    }
+    displaySource.value = content
+    hasError.value = false
+    errorMessage.value = ''
+    renderDiagram()
+    showNotification(t('fileLoaded'))
   } catch (e) {
     console.error('Failed to load content:', e)
-    showNotification(t('invalidInitialSource'))
+    showNotification('Failed to load file')
   }
 }
 
@@ -519,7 +541,9 @@ const handleFileOpen = (event) => {
     return
   }
   const reader = new FileReader()
-  reader.onload = () => loadFromContent(file.name, reader.result?.toString() || '')
+  reader.onload = async () => {
+    await loadFromContent(file.name, reader.result?.toString() || '')
+  }
   reader.readAsText(file, 'utf-8')
 }
 
@@ -549,8 +573,8 @@ const exportSvg = () => {
   document.body.removeChild(link)
 }
 
-const loadRecentFile = (file) => {
-  loadFromContent(file.name, file.content)
+const loadRecentFile = async (file) => {
+  await loadFromContent(file.name, file.content)
 }
 
 const switchLanguage = () => {
@@ -615,39 +639,26 @@ onMounted(async () => {
     html.setAttribute('data-bs-theme', 'dark')
   }
 
-  // Safely get initial document
-  let initialDoc = defaultMermaid
+  // Clear corrupted localStorage data
   try {
-    if (recentFiles.value.length > 0 && recentFiles.value[0].content) {
-      initialDoc = recentFiles.value[0].content
+    const stored = localStorage.getItem('mermaidpro-recent')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (!Array.isArray(parsed)) {
+        localStorage.removeItem('mermaidpro-recent')
+        recentFiles.value = []
+      }
     }
   } catch (e) {
-    console.warn('Failed to load recent file:', e)
-    initialDoc = defaultMermaid
+    localStorage.removeItem('mermaidpro-recent')
+    recentFiles.value = []
   }
 
-  if (recentFiles.value.length === 0) {
-    addRecent('default.mmd', defaultMermaid)
-    currentFileName.value = 'default.mmd'
-  }
-
-  // Validate and set initial content
-  let validContent = defaultMermaid
-  try {
-    if (initialDoc && initialDoc.trim() && await isValidMermaid(initialDoc)) {
-      validContent = initialDoc
-    } else if (initialDoc !== defaultMermaid) {
-      showNotification(t('invalidInitialSource'))
-    }
-  } catch (e) {
-    console.warn('Mermaid validation failed:', e)
-  }
-
-  displaySource.value = validContent
-  renderDiagram()
+  // Initialize with default content (don't auto-load recent files)
+  displaySource.value = defaultMermaid
 
   const state = EditorState.create({
-    doc: validContent,
+    doc: defaultMermaid,
     extensions: [
       basicSetup,
       markdown(),
@@ -666,6 +677,7 @@ onMounted(async () => {
     parent: editorWrapper.value
   })
 
+  // Render default diagram
   renderDiagram()
   resizePanels(window.innerWidth * 0.4)
 
@@ -673,14 +685,17 @@ onMounted(async () => {
   window.addEventListener('mouseup', stopDrag)
   // Drag and drop file
   window.addEventListener('dragover', (e) => e.preventDefault())
-  window.addEventListener('drop', (e) => {
+  window.addEventListener('drop', async (e) => {
     e.preventDefault()
     const file = e.dataTransfer?.files?.[0]
     if (!file) return
     const ext = file.name.split('.').pop().toLowerCase()
     if (!['mmd', 'mermaid'].includes(ext)) return
     const reader = new FileReader()
-    reader.onload = () => loadFromContent(file.name, reader.result?.toString() || '')
+    reader.onload = async () => {
+      const content = reader.result?.toString() || ''
+      await loadFromContent(file.name, content)
+    }
     reader.readAsText(file, 'utf-8')
   });
 
