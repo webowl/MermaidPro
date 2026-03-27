@@ -294,12 +294,35 @@ const filteredTemplates = computed(() => {
   return items
 })
 
-const applyTemplate = (template) => {
+const applyTemplate = async (template) => {
+  if (!editor) return
+
+  const content = template.code
   const name = `${template.label.en || template.label}.mmd`
-  editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: template.code } })
+
+  // Validate before applying
+  let isValid = false
+  try {
+    isValid = await isValidMermaid(content)
+  } catch (e) {
+    isValid = false
+  }
+
+  if (!isValid) {
+    errorMessage.value = `${t('parseError')}: ${t('syntaxError')}`
+    hasError.value = true
+    showNotification(t('invalidInitialSource'))
+    showTemplateGallery.value = false
+    return
+  }
+
+  // Valid - apply template
+  editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: content } })
   currentFileName.value = name
-  addRecent(name, template.code)
-  displaySource.value = template.code
+  addRecent(name, content)
+  displaySource.value = content
+  hasError.value = false
+  errorMessage.value = ''
   renderDiagram()
   showTemplateGallery.value = false
   showNotification(`${t('fromTemplate')}: ${template.label[lang.value] || template.label.en}`)
@@ -677,8 +700,8 @@ onMounted(async () => {
     parent: editorWrapper.value
   })
 
-  // Render default diagram
-  renderDiagram()
+  // Render default diagram after DOM is ready
+  await renderDiagram()
   resizePanels(window.innerWidth * 0.4)
 
   window.addEventListener('mousemove', onDrag)
