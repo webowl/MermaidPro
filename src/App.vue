@@ -16,16 +16,23 @@
               <li><a class="dropdown-item" href="#" @click.prevent="exportSvg">{{ t('exportSvg') }}</a></li>
             </ul>
           </div>
-          <!-- Templates Dropdown -->
+          <!-- Templates Dropdown with Submenus -->
           <div class="dropdown">
             <a class="btn btn-sm btn-light dropdown-toggle" href="#" role="button" id="templateMenuDropdown" data-bs-toggle="dropdown" aria-expanded="false">
               {{ t('templates') }}
             </a>
             <ul class="dropdown-menu" aria-labelledby="templateMenuDropdown">
-              <li v-for="cat in templateCategories" :key="cat.key">
-                <a class="dropdown-item dropdown-submenu" href="#" @click.prevent="applyTemplateByType(cat.key)">
-                  {{ cat.icon }} {{ cat.label[lang] }}
+              <li v-for="cat in templateCategories" :key="cat.key" class="dropdown-submenu">
+                <a class="dropdown-item" href="#">
+                  {{ cat.icon }} {{ cat.label[lang] }} <span class="float-end">▸</span>
                 </a>
+                <ul class="dropdown-menu dropdown-submenu-menu">
+                  <li v-for="item in templates[cat.key].items" :key="item.id">
+                    <a class="dropdown-item" href="#" @click.prevent="applyTemplate(item)">
+                      {{ item.label[lang] || item.label.en }}
+                    </a>
+                  </li>
+                </ul>
               </li>
             </ul>
           </div>
@@ -328,7 +335,7 @@ const applyTemplate = async (template) => {
   showNotification(`${t('fromTemplate')}: ${template.label[lang.value] || template.label.en}`)
 }
 
-// Apply first template from a type category
+// Apply first template from a type category (for quick access)
 const applyTemplateByType = (typeKey) => {
   const items = templates[typeKey]?.items
   if (items && items.length > 0) {
@@ -779,6 +786,32 @@ onUnmounted(() => {
 
 .user-icon i {
   font-size: 1.1rem;
+}
+
+/* Dropdown submenu styles */
+.dropdown-submenu {
+  position: relative;
+}
+
+.dropdown-submenu > .dropdown-menu {
+  display: none;
+  position: absolute;
+  left: 100%;
+  top: -6px;
+  margin-left: 0;
+}
+
+.dropdown-submenu:hover > .dropdown-menu {
+  display: block;
+}
+
+.dropdown-submenu > .dropdown-item::after {
+  content: '';
+}
+
+:global([data-bs-theme='dark']) .dropdown-submenu > .dropdown-menu {
+  background: #2d3139;
+  border-color: #444;
 }
 
 .sidebar {

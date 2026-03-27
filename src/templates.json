@@ -1,0 +1,145 @@
+{
+  "flowchart": {
+    "icon": "➡️",
+    "items": [
+      {
+        "id": "flow-simple",
+        "code": "flowchart TD\n    A[Start] --> B{Decision}\n    B -->|Yes| C[Action A]\n    B -->|No| D[Action B]\n    C --> E[End]\n    D --> E"
+      },
+      {
+        "id": "flow-horizontal",
+        "code": "flowchart LR\n    A[Input] --> B[Process]\n    B --> C{Check}\n    C -->|Pass| D[Output]\n    C -->|Fail| E[Retry]\n    E --> B"
+      }
+    ]
+  },
+  "sequence": {
+    "icon": "📱",
+    "items": [
+      {
+        "id": "seq-basic",
+        "code": "sequenceDiagram\n    participant A as Alice\n    participant B as Bob\n    A->>B: Hello\n    B-->>A: Hi!"
+      },
+      {
+        "id": "seq-login",
+        "code": "sequenceDiagram\n    participant U as User\n    participant S as Server\n    participant D as DB\n    U->>S: Login\n    S->>D: Verify\n    D-->>S: OK\n    S-->>U: Token"
+      }
+    ]
+  },
+  "classDiagram": {
+    "icon": "📊",
+    "items": [
+      {
+        "id": "class-basic",
+        "code": "classDiagram\n    class Animal {\n        +String name\n        +makeSound()\n    }\n    class Dog {\n        +bark()\n    }\n    Animal <|-- Dog"
+      }
+    ]
+  },
+  "erDiagram": {
+    "icon": "🔗",
+    "items": [
+      {
+        "id": "er-basic",
+        "code": "erDiagram\n    CUSTOMER ||--o{ ORDER : places\n    ORDER ||--|{ ITEM : contains\n    CUSTOMER {\n        int id PK\n        string name\n    }\n    ORDER {\n        int id PK\n        date created\n    }\n    ITEM {\n        string name\n        int qty\n    }"
+      }
+    ]
+  },
+  "stateDiagram": {
+    "icon": "🔄",
+    "items": [
+      {
+        "id": "state-basic",
+        "code": "stateDiagram-v2\n    [*] --> Idle\n    Idle --> Running : Start\n    Running --> Done : Finish\n    Done --> [*]"
+      }
+    ]
+  },
+  "gantt": {
+    "icon": "📅",
+    "items": [
+      {
+        "id": "gantt-basic",
+        "code": "gantt\n    title Project Plan\n    dateFormat YYYY-MM-DD\n    section Phase 1\n    Task A :done, 2024-01-01, 7d\n    Task B :active, 2024-01-08, 5d\n    section Phase 2\n    Task C :2024-01-15, 10d"
+      }
+    ]
+  },
+  "pie": {
+    "icon": "🥧",
+    "items": [
+      {
+        "id": "pie-basic",
+        "code": "pie showData\n    title Market Share\n    \"A\" : 40\n    \"B\" : 30\n    \"C\" : 20\n    \"D\" : 10"
+      }
+    ]
+  },
+  "mindmap": {
+    "icon": "🧠",
+    "items": [
+      {
+        "id": "mindmap-basic",
+        "code": "mindmap\n  root((Main))\n    Branch A\n      Sub A1\n    Branch B\n      Sub B1"
+      }
+    ]
+  },
+  "timeline": {
+    "icon": "⏰",
+    "items": [
+      {
+        "id": "timeline-basic",
+        "code": "timeline\n    title History\n    2023 : Started\n    2024 : V2.0"
+      }
+    ]
+  },
+  "gitGraph": {
+    "icon": "📈",
+    "items": [
+      {
+        "id": "git-basic",
+        "code": "gitGraph\n    commit\n    commit\n    branch feature\n    checkout feature\n    commit\n    checkout main\n    merge feature"
+      }
+    ]
+  },
+  "journey": {
+    "icon": "🚶",
+    "items": [
+      {
+        "id": "journey-basic",
+        "code": "journey\n    title User Journey\n    section Browse\n      Visit: 5: User\n    section Buy\n      Checkout: 4: User"
+      }
+    ]
+  },
+  "quadrantChart": {
+    "icon": "📊",
+    "items": [
+      {
+        "id": "quadrant-basic",
+        "code": "quadrantChart\n    title Matrix\n    x-axis Low --> High\n    y-axis Low --> High\n    quadrant-1 Q1\n    quadrant-2 Q2\n    quadrant-3 Q3\n    quadrant-4 Q4\n    A: [0.7, 0.8]\n    B: [0.3, 0.4]"
+      }
+    ]
+  },
+  "xychart": {
+    "icon": "📈",
+    "items": [
+      {
+        "id": "xy-basic",
+        "code": "xychart-beta\n    title Sales\n    x-axis [Q1, Q2, Q3, Q4]\n    y-axis Sales 0 --> 100\n    bar [50, 60, 45, 70]"
+      }
+    ]
+  },
+  "kanban": {
+    "icon": "📋",
+    "items": [
+      {
+        "id": "kanban-basic",
+        "code": "kanban\n    2-Todo\n      Task 1\n    3-Doing\n      Task 2\n    4-Done\n      Task 3"
+      }
+    ]
+  },
+  "packet": {
+    "icon": "📨",
+    "items": [
+      {
+        "id": "packet-basic",
+        "code": "packet-beta\n    0-15: Source Port\n    16-31: Dest Port"
+      }
+    ]
+  }
+}
