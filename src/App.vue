@@ -436,12 +436,21 @@ const getErrorLine = (message) => {
 }
 
 const isValidMermaid = async (source) => {
-  if (!source || typeof source !== 'string') return false
+  if (!source || typeof source !== 'string' || !source.trim()) {
+    return false
+  }
+  
+  // Use a timeout to prevent hanging
+  const timeout = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Parse timeout')), 5000)
+  })
+  
   try {
-    const result = await mermaid.parse(source)
-    return result !== false
+    const parsePromise = mermaid.parse(source)
+    const result = await Promise.race([parsePromise, timeout])
+    return result !== false && result !== undefined
   } catch (e) {
-    console.warn('Mermaid parse error:', e?.message || e)
+    // Silently fail - invalid mermaid syntax
     return false
   }
 }
