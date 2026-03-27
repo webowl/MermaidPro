@@ -23,5 +23,15 @@
   "newFileCreated": "New file created (pending apply)",
   "fileLoaded": "File loaded (pending apply)",
   "invalidInitialSource": "Initial content is invalid Mermaid, loaded default",
-  "line": "Line"
+  "line": "Line",
+  "templateGallery": "Templates",
+  "templates": "Templates",
+  "tryIt": "Try it",
+  "tryTemplate": "Try this template",
+  "searchTemplates": "Search templates...",
+  "noResults": "No templates found",
+  "allTypes": "All Types",
+  "selectTemplate": "Select a Template",
+  "selectTemplateHint": "Choose a template below to get started quickly",
+  "fromTemplate": "From template"
 }

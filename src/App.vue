@@ -14,6 +14,8 @@
               <li><a class="dropdown-item" href="#" @click.prevent="openFileInput">{{ t('openFile') }}</a></li>
               <li><a class="dropdown-item" href="#" @click.prevent="saveFile">{{ t('saveFile') }}</a></li>
               <li><a class="dropdown-item" href="#" @click.prevent="exportSvg">{{ t('exportSvg') }}</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item fw-bold" href="#" @click.prevent="showTemplateGallery = true">{{ t('templateGallery') }} ✨</a></li>
             </ul>
           </div>
         </div>
@@ -94,6 +96,66 @@
     </div>
 
     <input type="file" ref="fileInput" class="d-none" accept=".mmd,.mermaid" @change="handleFileOpen" />
+
+    <!-- Template Gallery Modal -->
+    <div v-if="showTemplateGallery" class="template-modal-overlay" @click.self="showTemplateGallery = false">
+      <div class="template-modal">
+        <div class="template-modal-header">
+          <h5 class="mb-0">{{ t('selectTemplate') }}</h5>
+          <p class="mb-2 text-muted small">{{ t('selectTemplateHint') }}</p>
+          <div class="template-search-row">
+            <input 
+              type="text" 
+              class="form-control form-control-sm" 
+              :placeholder="t('searchTemplates')"
+              v-model="templateSearch"
+            />
+            <button class="btn btn-sm btn-outline-secondary" @click="showTemplateGallery = false">✕</button>
+          </div>
+          <!-- Category Tabs -->
+          <div class="template-tabs">
+            <button 
+              class="btn btn-sm template-tab"
+              :class="{ 'btn-primary': templateFilter === 'all' }"
+              @click="templateFilter = 'all'"
+            >{{ t('allTypes') }}</button>
+            <button 
+              v-for="cat in templateCategories" 
+              :key="cat.key"
+              class="btn btn-sm template-tab"
+              :class="{ 'btn-primary': templateFilter === cat.key }"
+              @click="templateFilter = cat.key"
+            >{{ cat.icon }} {{ cat.label[lang] }}</button>
+          </div>
+        </div>
+        <div class="template-modal-body">
+          <div v-if="filteredTemplates.length === 0" class="text-center text-muted py-4">
+            {{ t('noResults') }}
+          </div>
+          <div class="template-grid">
+            <div 
+              v-for="item in filteredTemplates" 
+              :key="item.id"
+              class="template-card"
+              @click="applyTemplate(item)"
+            >
+              <div class="template-card-preview">
+                <div class="template-preview-placeholder">
+                  <div class="template-preview-icon">{{ diagramTypes.find(d => d.key === Object.keys(templates).find(k => templates[k].items.some(i => i.id === item.id)))?.icon || '📊' }}</div>
+                </div>
+              </div>
+              <div class="template-card-body">
+                <div class="template-card-title">{{ item.label[lang] || item.label.en }}</div>
+                <div class="template-card-desc">{{ item.desc[lang] || item.desc.en }}</div>
+                <button class="btn btn-sm btn-outline-primary template-try-btn">
+                  {{ t('tryIt') }} →
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -108,6 +170,7 @@ import { indentWithTab } from '@codemirror/commands'
 import mermaid from 'mermaid'
 import enLocale from './locales/en.json'
 import zhLocale from './locales/zh.json'
+import { templates, diagramTypes } from './templates.js'
 
 // Mermaid snippet completions
 const mermaidCompletions = [
@@ -194,6 +257,42 @@ const currentFileName = ref('')
 const isDarkMode = ref(localStorage.getItem('mermaidpro-theme') === 'dark')
 const sidebarVisible = ref(false)
 const notification = ref('')
+
+// Template Gallery
+const showTemplateGallery = ref(false)
+const templateFilter = ref('all')
+const templateSearch = ref('')
+const templateCategories = diagramTypes
+
+const filteredTemplates = computed(() => {
+  let items = []
+  if (templateFilter.value === 'all') {
+    items = Object.values(templates).flatMap(cat => cat.items)
+  } else {
+    items = templates[templateFilter.value]?.items || []
+  }
+  if (templateSearch.value.trim()) {
+    const q = templateSearch.value.toLowerCase()
+    items = items.filter(item =>
+      item.label.en.toLowerCase().includes(q) ||
+      item.label.zh.toLowerCase().includes(q) ||
+      item.desc.en.toLowerCase().includes(q) ||
+      item.desc.zh.toLowerCase().includes(q)
+    )
+  }
+  return items
+})
+
+const applyTemplate = (template) => {
+  const name = `${template.label.en || template.label}.mmd`
+  editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: template.code } })
+  currentFileName.value = name
+  addRecent(name, template.code)
+  displaySource.value = template.code
+  renderDiagram()
+  showTemplateGallery.value = false
+  showNotification(`${t('fromTemplate')}: ${template.label[lang.value] || template.label.en}`)
+}
 
 // Zoom & Pan
 const zoomLevel = ref(1)
@@ -776,6 +875,152 @@ onUnmounted(() => {
 
 :global([data-bs-theme='dark']) .cm-tooltip-autocomplete > ul > li[aria-selected] {
   background: #0d6efd !important;
+}
+
+/* Template Gallery Modal */
+.template-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.template-modal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 900px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+
+:global([data-bs-theme='dark']) .template-modal {
+  background: #2d3139;
+  color: #f8f9fa;
+}
+
+.template-modal-header {
+  padding: 20px;
+  border-bottom: 1px solid #dee2e6;
+  flex-shrink: 0;
+}
+
+:global([data-bs-theme='dark']) .template-modal-header {
+  border-color: #444;
+}
+
+.template-search-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.template-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.template-tab {
+  font-size: 13px;
+  padding: 4px 10px;
+}
+
+.template-modal-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.template-card {
+  border: 1px solid #dee2e6;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+:global([data-bs-theme='dark']) .template-card {
+  border-color: #444;
+  background: #252526;
+}
+
+.template-card:hover {
+  border-color: #0d6efd;
+  box-shadow: 0 4px 16px rgba(13, 110, 253, 0.2);
+  transform: translateY(-2px);
+}
+
+.template-card-preview {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #dee2e6;
+}
+
+:global([data-bs-theme='dark']) .template-card-preview {
+  background: linear-gradient(135deg, #1e1e1e 0%, #2d3139 100%);
+  border-color: #444;
+}
+
+.template-preview-icon {
+  font-size: 32px;
+  opacity: 0.8;
+}
+
+.template-card-body {
+  padding: 12px;
+}
+
+.template-card-title {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:global([data-bs-theme='dark']) .template-card-title {
+  color: #f8f9fa;
+}
+
+.template-card-desc {
+  font-size: 12px;
+  color: #6c757d;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:global([data-bs-theme='dark']) .template-card-desc {
+  color: #aaa;
+}
+
+.template-try-btn {
+  font-size: 12px;
+  padding: 2px 8px;
+  width: 100%;
 }
 
 .cm-completionLabel {

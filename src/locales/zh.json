@@ -23,5 +23,15 @@
   "newFileCreated": "新建文件已创建（待应用）",
   "fileLoaded": "文件已加载（待应用）",
   "invalidInitialSource": "初始内容不是有效 Mermaid，已加载默认内容",
-  "line": "行"
+  "line": "行",
+  "templateGallery": "模板",
+  "templates": "模板库",
+  "tryIt": "试试看",
+  "tryTemplate": "使用此模板",
+  "searchTemplates": "搜索模板...",
+  "noResults": "未找到模板",
+  "allTypes": "所有类型",
+  "selectTemplate": "选择模板",
+  "selectTemplateHint": "选择一个模板快速开始",
+  "fromTemplate": "来自模板"
 }
