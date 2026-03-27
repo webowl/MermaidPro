@@ -770,16 +770,38 @@ onMounted(async () => {
 
   window.addEventListener('mousemove', onDrag)
   window.addEventListener('mouseup', stopDrag)
-  // Drag and drop file
-  window.addEventListener('dragover', (e) => e.preventDefault())
+  
+  // Drag and drop file - prevent default browser behavior
+  window.addEventListener('dragover', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.dataTransfer.dropEffect = 'copy'
+  })
+  
+  window.addEventListener('dragenter', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+  })
+  
   window.addEventListener('drop', async (e) => {
     try {
       e.preventDefault()
-      const file = e.dataTransfer?.files?.[0]
-      if (!file) return
+      e.stopPropagation()
       
+      const files = e.dataTransfer?.files
+      if (!files || files.length === 0) return
+      
+      const file = files[0]
       const ext = file.name.split('.').pop()?.toLowerCase()
-      if (!ext || !['mmd', 'mermaid'].includes(ext)) return
+      if (!ext || !['mmd', 'mermaid'].includes(ext)) {
+        showNotification(t('unsupportedFile'))
+        return
+      }
+      
+      if (file.size > 1024 * 1024) {
+        showNotification('File too large (max 1MB)')
+        return
+      }
       
       const reader = new FileReader()
       reader.onerror = () => {
