@@ -14,11 +14,22 @@
               <li><a class="dropdown-item" href="#" @click.prevent="openFileInput">{{ t('openFile') }}</a></li>
               <li><a class="dropdown-item" href="#" @click.prevent="saveFile">{{ t('saveFile') }}</a></li>
               <li><a class="dropdown-item" href="#" @click.prevent="exportSvg">{{ t('exportSvg') }}</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item fw-bold" href="#" @click.prevent="showTemplateGallery = true">{{ t('templateGallery') }} ✨</a></li>
             </ul>
           </div>
-        </div>
+          <!-- Templates Dropdown -->
+          <div class="dropdown">
+            <a class="btn btn-sm btn-light dropdown-toggle" href="#" role="button" id="templateMenuDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+              {{ t('templates') }}
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="templateMenuDropdown">
+              <li v-for="cat in templateCategories" :key="cat.key">
+                <a class="dropdown-item dropdown-submenu" href="#" @click.prevent="applyTemplateByType(cat.key)">
+                  {{ cat.icon }} {{ cat.label[lang] }}
+                </a>
+              </li>
+            </ul>
+          </div>
+          </div>
         <div class="d-flex gap-2 align-items-center">
           <select class="form-select form-select-sm" style="width: 80px" v-model="lang" @change="switchLanguage">
             <option value="en">EN</option>
@@ -83,7 +94,7 @@
           </button>
         </div>
         <div class="preview-panel" ref="previewPanel">
-          <div class="chart-controls">
+          <div class="chart-controls chart-controls-top-left">
             <button @click="zoomOut" class="btn btn-sm btn-outline-secondary" :title="t('zoomOut')">−</button>
             <button @click="zoomIn" class="btn btn-sm btn-outline-secondary" :title="t('zoomIn')">+</button>
             <span class="zoom-label">{{ Math.round(zoomLevel * 100) }}%</span>
@@ -294,6 +305,14 @@ const applyTemplate = (template) => {
   showNotification(`${t('fromTemplate')}: ${template.label[lang.value] || template.label.en}`)
 }
 
+// Apply first template from a type category
+const applyTemplateByType = (typeKey) => {
+  const items = templates[typeKey]?.items
+  if (items && items.length > 0) {
+    applyTemplate(items[0])
+  }
+}
+
 // Zoom & Pan
 const zoomLevel = ref(1)
 const panMode = ref(false)
@@ -355,7 +374,9 @@ const updateSvgTransform = () => {
   const svg = preview.value?.querySelector('svg');
   if (svg) {
     svg.style.transform = `scale(${zoomLevel.value}) translate(${pan.value.x}px, ${pan.value.y}px)`;
-    svg.style.transformOrigin = 'top left';
+    svg.style.transformOrigin = 'center center';
+    svg.style.maxWidth = '100%';
+    svg.style.maxHeight = '100%';
   }
 }
 
@@ -670,6 +691,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for mobile browsers */
   overflow: hidden;
 }
 
@@ -709,6 +731,9 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   overflow: hidden;
+  /* Ensure full height */
+  height: calc(100vh - 57px);
+  height: calc(100dvh - 57px);
 }
 
 .editor-panel {
@@ -718,6 +743,7 @@ onUnmounted(() => {
   flex-direction: column;
   border-right: 1px solid #dee2e6;
   overflow: hidden;
+  height: 100%;
 }
 
 .editor-wrapper {
@@ -753,6 +779,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 100%;
 }
 
 .splitter:hover {
@@ -779,13 +806,21 @@ onUnmounted(() => {
 
 .preview-panel {
   flex: 1;
-  overflow: hidden; /* Changed from auto to hidden */
+  overflow: hidden;
   background: #fff;
-  position: relative; /* For positioning controls */
+  position: relative;
+  height: 100%;
 }
 
 #preview {
   cursor: default;
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+  padding: 48px 16px 16px 16px !important; /* Padding top for controls */
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
 }
 
 .chart-controls {
@@ -795,9 +830,10 @@ onUnmounted(() => {
   z-index: 10;
   display: flex;
   gap: 4px;
-  background: rgba(255,255,255,0.8);
-  padding: 4px;
-  border-radius: 6px;
+  background: rgba(255,255,255,0.9);
+  padding: 6px 8px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .cursor-pointer {
