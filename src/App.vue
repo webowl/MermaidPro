@@ -31,12 +31,12 @@
             <ul class="dropdown-menu" aria-labelledby="templateMenuDropdown">
               <li v-for="cat in templateCategories" :key="cat.key" class="dropdown-submenu">
                 <a class="dropdown-item" href="#">
-                  {{ cat.icon }} {{ cat.label[lang] }} <span class="float-end">▸</span>
+                  {{ cat.icon }} {{ cat.name }} <span class="float-end">▸</span>
                 </a>
                 <ul class="dropdown-menu dropdown-submenu-menu">
-                  <li v-for="item in templates[cat.key].items" :key="item.id">
+                  <li v-for="item in templates[cat.key].examples" :key="item.name">
                     <a class="dropdown-item" href="#" @click.prevent="applyTemplate(item)">
-                      {{ item.label[lang] || item.label.en }}
+                      {{ item.name }}
                     </a>
                   </li>
                 </ul>
@@ -150,7 +150,7 @@
               class="btn btn-sm template-tab"
               :class="{ 'btn-primary': templateFilter === cat.key }"
               @click="templateFilter = cat.key"
-            >{{ cat.icon }} {{ cat.label[lang] }}</button>
+            >{{ cat.icon }} {{ cat.name }}</button>
           </div>
         </div>
         <div class="template-modal-body">
@@ -160,18 +160,17 @@
           <div class="template-grid">
             <div 
               v-for="item in filteredTemplates" 
-              :key="item.id"
+              :key="item.name"
               class="template-card"
               @click="applyTemplate(item)"
             >
               <div class="template-card-preview">
                 <div class="template-preview-placeholder">
-                  <div class="template-preview-icon">{{ diagramTypes.find(d => d.key === Object.keys(templates).find(k => templates[k].items.some(i => i.id === item.id)))?.icon || '📊' }}</div>
+                  <div class="template-preview-icon">{{ diagramTypes.find(d => d.key === item.type)?.icon || '📊' }}</div>
                 </div>
               </div>
               <div class="template-card-body">
-                <div class="template-card-title">{{ item.label[lang] || item.label.en }}</div>
-                <div class="template-card-desc">{{ item.desc[lang] || item.desc.en }}</div>
+                <div class="template-card-title">{{ item.name }}</div>
                 <button class="btn btn-sm btn-outline-primary template-try-btn">
                   {{ t('tryIt') }} →
                 </button>
@@ -290,19 +289,18 @@ const templateSearch = ref('')
 const templateCategories = diagramTypes
 
 const filteredTemplates = computed(() => {
-  let items = []
-  if (templateFilter.value === 'all') {
-    items = Object.values(templates).flatMap(cat => cat.items)
-  } else {
-    items = templates[templateFilter.value]?.items || []
+  let items = Object.entries(templates).flatMap(([catKey, cat]) => {
+    return cat.examples.map(ex => ({...ex, type: catKey}))
+  })
+
+  if (templateFilter.value !== 'all') {
+    items = items.filter(item => item.type === templateFilter.value)
   }
+
   if (templateSearch.value.trim()) {
     const q = templateSearch.value.toLowerCase()
     items = items.filter(item =>
-      item.label.en.toLowerCase().includes(q) ||
-      item.label.zh.toLowerCase().includes(q) ||
-      item.desc.en.toLowerCase().includes(q) ||
-      item.desc.zh.toLowerCase().includes(q)
+      item.name.toLowerCase().includes(q)
     )
   }
   return items
@@ -312,7 +310,7 @@ const applyTemplate = async (template) => {
   if (!editor) return
 
   const content = template.code
-  const name = `${template.label.en || template.label}.mmd`
+  const name = `${template.name}.mmd`
 
   // Validate before applying
   let isValid = false
@@ -339,12 +337,12 @@ const applyTemplate = async (template) => {
   errorMessage.value = ''
   renderDiagram()
   showTemplateGallery.value = false
-  showNotification(`${t('fromTemplate')}: ${template.label[lang.value] || template.label.en}`)
+  showNotification(`${t('fromTemplate')}: ${template.name}`)
 }
 
 // Apply first template from a type category (for quick access)
 const applyTemplateByType = (typeKey) => {
-  const items = templates[typeKey]?.items
+  const items = templates[typeKey]?.examples
   if (items && items.length > 0) {
     applyTemplate(items[0])
   }
